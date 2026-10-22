@@ -32,6 +32,14 @@ jobs:
         env:
           QT_QPA_PLATFORM: offscreen
         run: python -m pytest -v
+      - name: Screenshots of the GUI
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: python tools/screenshots.py screenshots
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: screenshots/*.png
 
   build:
     needs: test

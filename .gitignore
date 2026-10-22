@@ -6,3 +6,4 @@ release/
 .pytest_cache/
 *.spec
 .venv/
+screenshots/

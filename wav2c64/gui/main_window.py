@@ -203,6 +203,7 @@ class MainWindow(QMainWindow):
         self.chk_overlay = QCheckBox("Show 4-bit result in the wave")
         self.chk_overlay.setChecked(self.qs.value("overlay", "true") == "true")
         self.chk_overlay.toggled.connect(self._on_overlay)
+        self.wave.show_overlay = self.chk_overlay.isChecked()
         pl.addWidget(self.btn_play_orig)
         pl.addWidget(self.btn_play_c64)
         pl.addSpacing(12)
