@@ -241,7 +241,7 @@ class WaveformView(QWidget):
             return
         w = self.width()
         count = i1 - i0
-        pen = QPen(color, 1.5)
+        pen = QPen(color, 2.0)
         p.setPen(pen)
         levels = (nib[i0:i1].astype(np.float32) - 7.5) / 7.5
         if count > 2 * w:
