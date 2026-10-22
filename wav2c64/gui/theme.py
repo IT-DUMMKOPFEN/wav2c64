@@ -100,6 +100,7 @@ QPushButton:hover {{ border-color: {accent2}; }}
 QPushButton:pressed {{ background: {accent}; color: {accent_text}; }}
 QPushButton:checked {{ background: {accent}; color: {accent_text}; }}
 QPushButton:disabled {{ color: {muted}; border-color: {grid}; }}
+QPushButton#small {{ padding: 4px 4px; font-size: 6pt; }}
 QPushButton#primary {{
     background: {accent}; color: {accent_text}; border: 2px solid {accent2};
     font-size: 9pt; padding: 10px 18px;

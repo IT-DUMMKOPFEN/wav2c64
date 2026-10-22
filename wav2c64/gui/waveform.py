@@ -35,6 +35,7 @@ class WaveformView(QWidget):
         self.theme = None
         self._drag = None
         self._press_frame = 0
+        self._peak_cache = (None, 1.0)
 
     # ---------------- data ----------------------------------------------
     def set_theme(self, theme):
@@ -216,11 +217,22 @@ class WaveformView(QWidget):
                 for pt in poly:
                     p.drawEllipse(pt, 1.5, 1.5)
 
+    def _selection_peak(self):
+        key = (self.s0, self.s1, id(self.data))
+        if self._peak_cache[0] != key:
+            seg = self.data[self.s0:self.s1]
+            pk = float(np.max(np.abs(seg))) if len(seg) else 1.0
+            self._peak_cache = (key, pk if pk > 1e-6 else 1.0)
+        return self._peak_cache[1]
+
     def _draw_overlay(self, p, mid, amp, color):
         nib, rate = self.overlay
         n = len(nib)
         if n == 0:
             return
+        # full 4-bit range = peak of the original selection, so both curves
+        # can be compared directly
+        amp = amp * self._selection_peak()
         # nibble i covers source frames s0 + i*ratio ... s0 + (i+1)*ratio
         ratio = self.rate / float(rate)
         i0 = max(0, int((self.v0 - self.s0) / ratio) - 1)
@@ -233,7 +245,10 @@ class WaveformView(QWidget):
         p.setPen(pen)
         levels = (nib[i0:i1].astype(np.float32) - 7.5) / 7.5
         if count > 2 * w:
-            # too dense for steps: draw min/max per pixel
+            # too dense for steps: draw min/max per pixel, half transparent
+            c = QColor(color)
+            c.setAlpha(110)
+            p.setPen(QPen(c, 1))
             spp = count / float(w)
             edges = np.clip((np.arange(w + 1) * spp).astype(np.int64), 0, count - 1)
             mins = np.minimum.reduceat(levels, edges[:-1])

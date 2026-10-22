@@ -263,6 +263,8 @@ class MainWindow(QMainWindow):
     def _build_settings(self):
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
+        scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
+        scroll.setMinimumWidth(400)
         host = QWidget()
         v = QVBoxLayout(host)
         v.setSpacing(10)
@@ -291,6 +293,7 @@ class MainWindow(QMainWindow):
         rr = QHBoxLayout()
         for r in (4000, 6000, 8000, 10000, 11025):
             b = QPushButton(str(r))
+            b.setObjectName("small")
             b.setToolTip("Set %d Hz" % r)
             b.clicked.connect(lambda _=False, r=r: self.w_rate.setValue(r))
             rr.addWidget(b)
@@ -393,7 +396,7 @@ class MainWindow(QMainWindow):
         app.setPalette(palette_for(t))
         app.setStyleSheet(stylesheet_for(t))
         self.wave.set_theme(t)
-        self.btn_theme.setText("☀  Day" if t["name"] == "night" else "☾  Night")
+        self.btn_theme.setText("Day mode" if t["name"] == "night" else "Night mode")
         self.qs.setValue("theme", t["name"])
         self._update_mem_style()
         self._update_info()
