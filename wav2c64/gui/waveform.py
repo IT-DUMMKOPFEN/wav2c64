@@ -31,6 +31,7 @@ class WaveformView(QWidget):
         self.s0 = self.s1 = 0
         self.overlay = None           # (nibbles, rate) of the converted signal
         self.show_overlay = True
+        self.fades = (0, 0)           # fade in / fade out length in frames
         self.playhead = None          # frame or None
         self.theme = None
         self._drag = None
@@ -71,6 +72,12 @@ class WaveformView(QWidget):
     def set_overlay(self, nibbles, rate):
         self.overlay = None if nibbles is None else (nibbles, rate)
         self.update()
+
+    def set_fades(self, fade_in, fade_out):
+        f = (int(fade_in), int(fade_out))
+        if f != self.fades:
+            self.fades = f
+            self.update()
 
     def set_playhead(self, frame):
         self.playhead = frame
@@ -158,6 +165,8 @@ class WaveformView(QWidget):
         sel = QColor(t["sel"])
         sel.setAlpha(t["sel_alpha"])
         p.fillRect(QRectF(max(0, x0), ruler, max(0, min(w, x1) - max(0, x0)), h - ruler), sel)
+        # fade envelope
+        self._draw_fades(p, mid, amp, t)
         # handles
         hc = QColor(t["playhead"] if t["name"] == "night" else t["accent2"])
         for x in (x0, x1):
@@ -170,6 +179,33 @@ class WaveformView(QWidget):
             x = self._x(self.playhead)
             p.setPen(QPen(QColor(t["playhead"]), 2))
             p.drawLine(QPointF(x, ruler), QPointF(x, h))
+
+    def _draw_fades(self, p, mid, amp, t):
+        fi, fo = self.fades
+        if not (fi or fo) or self.s1 <= self.s0:
+            return
+        shade = QColor(t["wave_bg"])
+        shade.setAlpha(150)
+        line = QColor(t["playhead"] if t["name"] == "night" else t["accent2"])
+        pen = QPen(line, 1.5, Qt.DashLine)
+        top, bot = mid - amp, mid + amp
+        for a, b, rising in ((self.s0, self.s0 + fi, True), (self.s1 - fo, self.s1, False)):
+            if b <= a:
+                continue
+            xa, xb = self._x(a), self._x(b)
+            if xb < 0 or xa > self.width():
+                continue
+            x0 = xa if rising else xb           # the point where the volume is 0
+            x1 = xb if rising else xa           # full volume
+            # area outside the envelope is shaded
+            p.setPen(Qt.NoPen)
+            p.setBrush(shade)
+            p.drawPolygon(QPolygonF([QPointF(x0, top), QPointF(x1, top), QPointF(x0, mid)]))
+            p.drawPolygon(QPolygonF([QPointF(x0, bot), QPointF(x1, bot), QPointF(x0, mid)]))
+            p.setBrush(Qt.NoBrush)
+            p.setPen(pen)
+            p.drawLine(QPointF(x0, mid), QPointF(x1, top))
+            p.drawLine(QPointF(x0, mid), QPointF(x1, bot))
 
     def _draw_ruler(self, p, w, ruler, t):
         p.fillRect(0, 0, w, ruler, QColor(t["panel"]))

@@ -2,7 +2,7 @@ name: Test and build
 
 # Builds are published as files of a GitHub (pre-)release instead of
 # workflow artifacts (release files do not count against the artifact quota):
-#   pull request / manual run  -> release "preview-0.6a" (replaced every run)
+#   pull request / manual run  -> release "preview-0.2b" (replaced every run)
 #   tag v*                     -> release with the tag name
 
 on:
@@ -21,7 +21,7 @@ concurrency:
 
 env:
   GH_TOKEN: ${{ github.token }}
-  PREVIEW_TAG: preview-0.6a
+  PREVIEW_TAG: preview-0.2b
 
 jobs:
   test:
@@ -85,7 +85,7 @@ jobs:
             SHA="${{ github.event.pull_request.head.sha || github.sha }}"
             gh release delete "$TAG" -R "$GITHUB_REPOSITORY" --cleanup-tag -y >/dev/null 2>&1 || true
             gh release create "$TAG" -R "$GITHUB_REPOSITORY" --prerelease --target "$SHA" \
-              --title "WAV2C64 0.6a preview build" \
+              --title "WAV2C64 0.2b preview build" \
               --notes "Automatic test build of commit $SHA (not a final release)."
           fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"

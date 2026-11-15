@@ -31,6 +31,10 @@ class Settings:
     sid: int = 0                  # 0 auto, 1 6581, 2 8580
     loop: bool = False
     preset: str = "quality"       # "quality", "clean" or "custom"
+    fade_in: bool = False         # fade in from 0 % to 100 %
+    fade_in_s: float = 1.0        # length in seconds
+    fade_out: bool = False        # fade out from 100 % to 0 %
+    fade_out_s: float = 1.0
 
     def to_dict(self):
         return asdict(self)
@@ -282,6 +286,36 @@ def noise_gate(x, rate, thr_db):
     return x * np.array(gains)
 
 
+FADE_MAX_S = 10.0
+
+
+def fade_lengths(n, rate, s):
+    """Lengths (in samples) of fade in and fade out for a signal of *n*
+    samples. If both together are longer than the signal they are
+    shortened in proportion, so they meet but never overlap."""
+    fi = int(round(max(0.0, s.fade_in_s) * rate)) if s.fade_in else 0
+    fo = int(round(max(0.0, s.fade_out_s) * rate)) if s.fade_out else 0
+    if fi + fo > n > 0:
+        k = n / float(fi + fo)
+        fi = int(fi * k)
+        fo = n - fi if fo else 0
+    return min(fi, n), min(fo, n)
+
+
+def apply_fades(x, rate, s):
+    """Linear fade in (0 -> 100 %) and fade out (100 -> 0 %)."""
+    n = len(x)
+    fi, fo = fade_lengths(n, rate, s)
+    if not (fi or fo):
+        return x
+    g = np.ones(n)
+    if fi:
+        g[:fi] = np.arange(fi) / float(fi)                 # starts at exactly 0
+    if fo:
+        g[n - fo:] *= (np.arange(fo, 0, -1) - 1) / float(fo)  # ends at exactly 0
+    return x * g
+
+
 def quantize(x, shaping=0.0, dither=False, seed=1234):
     """-1..1 -> 4 bit levels 0..15, silence exactly on level 8.
     Returns (nibbles uint8, snr_db or None)."""
@@ -399,7 +433,8 @@ def convert(mono, src_rate, start, end, s, max_samples=None):
     peak = np.max(np.abs(y)) if len(y) else 0.0
     scale = 1.0 / peak if (s.normalize and peak > 1e-9) else 1.0
     scale *= 10 ** (s.gain_db / 20.0)
-    nib, snr = quantize(y * scale, max(0.0, min(1.0, s.noise_shaping)), s.dither)
+    y = apply_fades(y * scale, rate, s)
+    nib, snr = quantize(y, max(0.0, min(1.0, s.noise_shaping)), s.dither)
     samples = len(nib)
     if len(nib) & 1:
         nib = np.concatenate([nib, nib[-1:]])

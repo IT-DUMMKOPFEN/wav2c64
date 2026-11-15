@@ -17,8 +17,8 @@ from PySide6.QtWidgets import (
 )
 
 from .. import APP_NAME, VERSION, AUTHOR
-from ..core import (PRESETS, Settings, WavError, apply_preset, convert, load_wav,
-                    output_length, preview_audio, write_wav16)
+from ..core import (FADE_MAX_S, PRESETS, Settings, WavError, apply_preset, convert,
+                    fade_lengths, load_wav, output_length, preview_audio, write_wav16)
 from ..export import build_project, player_info, write_project
 from .dialogs import AboutDialog, ExportDialog, asset
 from .theme import DAY, NIGHT, palette_for, stylesheet_for
@@ -304,6 +304,37 @@ class MainWindow(QMainWindow):
         f.addRow("", self.lbl_rate)
         v.addWidget(g)
 
+        # fade in / fade out
+        g = QGroupBox("FADE")
+        f = QFormLayout(g)
+
+        def fade_row(text, tip):
+            chk = QCheckBox(text)
+            chk.setToolTip(tip)
+            chk.toggled.connect(self._on_setting)
+            sl = QSlider(Qt.Horizontal)
+            sl.setRange(1, int(FADE_MAX_S * 10))          # tenths of a second
+            sl.setPageStep(5)
+            sl.setToolTip("Length of the fade (0.1 - %.0f seconds)" % FADE_MAX_S)
+            sl.valueChanged.connect(self._on_setting)
+            lbl = QLabel()
+            lbl.setMinimumWidth(52)
+            row = QHBoxLayout()
+            row.addWidget(sl, 1)
+            row.addWidget(lbl)
+            f.addRow(chk, row)
+            return chk, sl, lbl
+
+        self.w_fin, self.w_fin_len, self.lbl_fin = fade_row(
+            "Fade in", "Fade in at the start of the selection: volume rises from 0 % to 100 %.")
+        self.w_fout, self.w_fout_len, self.lbl_fout = fade_row(
+            "Fade out", "Fade out at the end of the selection: volume falls from 100 % to 0 %.")
+        self.lbl_fade = QLabel()
+        self.lbl_fade.setObjectName("muted")
+        self.lbl_fade.setWordWrap(True)
+        f.addRow("", self.lbl_fade)
+        v.addWidget(g)
+
         # sound processing
         g = QGroupBox("SOUND / NOISE")
         f = QFormLayout(g)
@@ -532,6 +563,11 @@ class MainWindow(QMainWindow):
         self.w_sid.setCurrentIndex(s.sid)
         self.w_loop.setCurrentIndex(1 if s.loop else 0)
         self.lbl_shape.setText("%d %%" % self.w_shape.value())
+        self.w_fin.setChecked(s.fade_in)
+        self.w_fout.setChecked(s.fade_out)
+        for sl, val in ((self.w_fin_len, s.fade_in_s), (self.w_fout_len, s.fade_out_s)):
+            sl.setValue(int(round(max(0.1, min(FADE_MAX_S, val)) * 10)))
+        self._update_fade_labels()
         self._updating = False
 
     def _widgets_to_settings(self):
@@ -550,11 +586,16 @@ class MainWindow(QMainWindow):
         s.sid = self.w_sid.currentIndex()
         s.loop = self.w_loop.currentIndex() == 1
         s.preset = self.w_preset.currentData()
+        s.fade_in = self.w_fin.isChecked()
+        s.fade_in_s = self.w_fin_len.value() / 10.0
+        s.fade_out = self.w_fout.isChecked()
+        s.fade_out_s = self.w_fout_len.value() / 10.0
 
     def _on_setting(self, *_):
         if self._updating:
             return
         self.lbl_shape.setText("%d %%" % self.w_shape.value())
+        self._update_fade_labels()
         sender = self.sender()
         processing = (self.w_norm, self.w_gain, self.w_hpf, self.w_comp, self.w_thr,
                       self.w_lim, self.w_gate, self.w_shape, self.w_dither)
@@ -576,6 +617,13 @@ class MainWindow(QMainWindow):
         self._widgets_to_settings()
         self._save_settings()
         self._schedule()
+
+    def _update_fade_labels(self):
+        for chk, sl, lbl in ((self.w_fin, self.w_fin_len, self.lbl_fin),
+                             (self.w_fout, self.w_fout_len, self.lbl_fout)):
+            lbl.setText("%.1f s" % (sl.value() / 10.0))
+            sl.setEnabled(chk.isChecked())
+            lbl.setEnabled(chk.isChecked())
 
     def _reset_settings(self):
         self.settings = Settings()
@@ -722,6 +770,8 @@ class MainWindow(QMainWindow):
             self.lbl_mem.setText("Fits. %s bytes left (%.1f s more possible)." % (
                 _fmt_bytes(free - need), (free - need) * 2 / float(rate)))
 
+        self._update_fades()
+
         r = self.result
         fresh = r is not None and self.result_key == self._key()
         if self.wav is None:
@@ -739,6 +789,26 @@ class MainWindow(QMainWindow):
         self.btn_play_c64.setEnabled(self.player is not None and self.wav is not None)
         self.btn_play_orig.setEnabled(self.player is not None and self.wav is not None)
         self._update_info()
+
+    def _update_fades(self):
+        s = self.settings
+        if self.wav is None:
+            self.wave.set_fades(0, 0)
+            fi, fo, sel = 0, 0, 0
+        else:
+            sel = self.wave.s1 - self.wave.s0
+            fi, fo = fade_lengths(sel, self.wav.rate, s)
+            self.wave.set_fades(fi, fo)
+        if not (s.fade_in or s.fade_out):
+            txt = "Off. Switch on fade in and/or fade out, each with its own length."
+        elif self.wav is not None and sel > 0 and (
+                fi < s.fade_in * int(round(s.fade_in_s * self.wav.rate)) or
+                fo < s.fade_out * int(round(s.fade_out_s * self.wav.rate))):
+            txt = "Longer than the selection - shortened to %.1f s + %.1f s." % (
+                fi / float(self.wav.rate), fo / float(self.wav.rate))
+        else:
+            txt = "Shown in the wave. ▶ Original plays without fades."
+        self.lbl_fade.setText(txt)
 
     # ============================================================ info text
     def _update_info(self):
@@ -778,6 +848,10 @@ class MainWindow(QMainWindow):
                 steps.append("noise gate below %d dB" % s.gate_db)
             if s.gain_db:
                 steps.append("gain %+.1f dB" % s.gain_db)
+            if s.fade_in:
+                steps.append("fade in %.1f s (0 → 100 %%)" % s.fade_in_s)
+            if s.fade_out:
+                steps.append("fade out %.1f s (100 → 0 %%)" % s.fade_out_s)
             h.append("<li><b>Shape the sound:</b> %s. Goal: use all 16 levels, so the "
                      "4-bit noise stays far below the signal.</li>" % ", ".join(steps))
             q = "<li><b>Quantize to 4 bit</b> (levels 0–15). Silence lands exactly on level 8 " \

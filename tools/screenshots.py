@@ -71,6 +71,17 @@ def main():
         settle()
         win.grab().save(os.path.join(out, "info_%s.png" % theme["name"]))
         win.tabs.setCurrentIndex(0)
+    # fade in + fade out
+    win.w_fin.setChecked(True)
+    win.w_fin_len.setValue(6)
+    win.w_fout.setChecked(True)
+    win.w_fout_len.setValue(4)
+    for theme in (NIGHT, DAY):
+        win.apply_theme(theme)
+        settle()
+        win.grab().save(os.path.join(out, "fade_%s.png" % theme["name"]))
+    win.w_fin.setChecked(False)
+    win.w_fout.setChecked(False)
     win.apply_theme(NIGHT)
     a = AboutDialog(win)
     a.show()

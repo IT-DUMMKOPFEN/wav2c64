@@ -1,6 +1,6 @@
 <p align="center"><img src="wav2c64/assets/banner.png" alt="WAV2C64" width="720"></p>
 
-# WAV2C64 0.6a
+# WAV2C64 0.2b
 
 **WAV2C64** converts WAV files into 4-bit samples for the **Commodore 64**.
 It writes a ready-to-run **PRG**, the matching player source for the
@@ -12,15 +12,15 @@ Author: **IT-Dummkopfen** · License: **MIT**
 ## Download
 
 Ready-made programs are built automatically for every release
-(see *Releases*; test builds of pull requests in the pre-release *preview-0.6a*):
+(see *Releases*; test builds of pull requests in the pre-release *preview-0.2b*):
 
 | System | File | Start |
 |---|---|---|
-| Windows 11 (x64) | `WAV2C64-0.6a-windows-x64.exe` | double click |
-| macOS (Apple Silicon) | `WAV2C64-0.6a-macos-apple-silicon.dmg` | open, drag WAV2C64 to *Applications* |
-| macOS (Intel) | `WAV2C64-0.6a-macos-intel.dmg` | open, drag WAV2C64 to *Applications* |
-| Linux (x86_64) AppImage | `WAV2C64-0.6a-linux-x86_64.AppImage` | `chmod +x` and double click |
-| Linux (x86_64) normal | `WAV2C64-0.6a-linux-x86_64.tar.gz` | unpack, run `./WAV2C64` |
+| Windows 11 (x64) | `WAV2C64-0.2b-windows-x64.exe` | double click |
+| macOS (Apple Silicon) | `WAV2C64-0.2b-macos-apple-silicon.dmg` | open, drag WAV2C64 to *Applications* |
+| macOS (Intel) | `WAV2C64-0.2b-macos-intel.dmg` | open, drag WAV2C64 to *Applications* |
+| Linux (x86_64) AppImage | `WAV2C64-0.2b-linux-x86_64.AppImage` | `chmod +x` and double click |
+| Linux (x86_64) normal | `WAV2C64-0.2b-linux-x86_64.tar.gz` | unpack, run `./WAV2C64` |
 
 The programs are not signed. On first start:
 **macOS** – right click the app → *Open* (or *System Settings → Privacy & Security → Open anyway*).
@@ -32,9 +32,11 @@ The programs are not signed. On first start:
 2. **Trim** – drag in the waveform to select the part you want, drag the edges to fine-tune.
    Mouse wheel zooms, Shift + wheel scrolls.
 3. **Listen** – `▶ Original` and `▶ C64 4-bit` play the selection before and after conversion.
-4. **Settings** – sample rate, sound/noise processing, PAL/NTSC, SID chip, loop.
+4. **Fade** – *Fade in* (0 % → 100 %) and *Fade out* (100 % → 0 %) can be switched on
+   separately, each with its own length slider (0.1–10 s). The fades are drawn in the waveform.
+5. **Settings** – sample rate, sound/noise processing, PAL/NTSC, SID chip, loop.
    The **memory bar** shows whether the sample fits into the C64.
-5. **Export** – choose a folder and a project name. WAV2C64 writes
+6. **Export** – choose a folder and a project name. WAV2C64 writes
    `name.prg`, `name.asm` and `name.txt`.
 
 On the C64 (or in VICE): `LOAD"NAME",8` and `RUN`.

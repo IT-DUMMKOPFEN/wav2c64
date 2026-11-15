@@ -108,3 +108,53 @@ def test_names():
     assert set(files) == {"demo.asm", "demo.txt", "demo.prg"}
     assert '!source "demo.txt"' in files["demo.asm"]
     assert files["demo.prg"][:2] == b"\x01\x08"
+
+
+def _tone(rate=8000, secs=3.0):
+    t = np.arange(int(rate * secs)) / float(rate)
+    return 0.8 * np.sin(2 * np.pi * 440 * t)
+
+
+def test_fade_in_and_out_independent():
+    from wav2c64.core import fade_lengths, apply_fades
+    x = np.ones(8000)
+    s = Settings()
+    assert fade_lengths(8000, 8000, s) == (0, 0)
+    assert np.array_equal(apply_fades(x, 8000, s), x)
+    # only fade in
+    s.fade_in, s.fade_in_s = True, 0.5
+    y = apply_fades(x, 8000, s)
+    assert y[0] == 0.0 and abs(y[2000] - 0.5) < 1e-3 and np.all(y[4000:] == 1.0)
+    assert np.all(np.diff(y[:4000]) > 0)
+    # only fade out
+    s = Settings(fade_out=True, fade_out_s=0.25)
+    y = apply_fades(x, 8000, s)
+    assert np.all(y[:6000] == 1.0) and y[-1] == 0.0 and np.all(np.diff(y[6000:]) < 0)
+    # both, longer than the signal -> shortened, they meet
+    s = Settings(fade_in=True, fade_in_s=3.0, fade_out=True, fade_out_s=1.0)
+    fi, fo = fade_lengths(8000, 8000, s)
+    assert fi + fo == 8000 and fi == 6000
+    y = apply_fades(x, 8000, s)
+    assert y[0] == 0.0 and y[-1] == 0.0 and np.max(y) <= 1.0
+
+
+def test_convert_with_fades():
+    mono = _tone()
+    s = Settings(sample_rate=8000)
+    apply_preset(s, "clean")
+    plain = convert(mono, 8000, 0, len(mono), s)
+    s.fade_in, s.fade_in_s = True, 1.0
+    s.fade_out, s.fade_out_s = True, 0.5
+    r = convert(mono, 8000, 0, len(mono), s)
+    lv = r.nibbles[:r.samples].astype(int) - 8
+    # starts and ends in silence (level 8), middle untouched
+    assert np.all(lv[:50] == 0) and np.all(lv[-50:] == 0)
+    assert np.array_equal(r.nibbles[9000:19000], plain.nibbles[9000:19000])
+    # loudness rises during fade in, falls during fade out
+    def peak(a, b):
+        return np.max(np.abs(lv[a:b]))
+    assert peak(0, 800) < peak(3200, 4000) < peak(7000, 8000)
+    assert peak(23200, 24000) < peak(20000, 20800)
+    # settings survive the save/load round trip
+    s2 = Settings.from_dict(s.to_dict())
+    assert s2.fade_in and s2.fade_out and s2.fade_in_s == 1.0 and s2.fade_out_s == 0.5
