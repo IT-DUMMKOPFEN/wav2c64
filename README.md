@@ -12,7 +12,7 @@ Author: **IT-Dummkopfen** · License: **MIT**
 ## Download
 
 Ready-made programs are built automatically for every release
-(see *Releases*; for pull requests under *Actions → Artifacts*):
+(see *Releases*; test builds of pull requests in the pre-release *preview-0.6a*):
 
 | System | File | Start |
 |---|---|---|
