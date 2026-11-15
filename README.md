@@ -17,7 +17,8 @@ Ready-made programs are built automatically for every release
 | System | File | Start |
 |---|---|---|
 | Windows 11 (x64) | `WAV2C64-0.6a-windows-x64.exe` | double click |
-| macOS (Apple Silicon) | `WAV2C64-0.6a-macos-arm64.dmg` | open, drag WAV2C64 to *Applications* |
+| macOS (Apple Silicon) | `WAV2C64-0.6a-macos-apple-silicon.dmg` | open, drag WAV2C64 to *Applications* |
+| macOS (Intel) | `WAV2C64-0.6a-macos-intel.dmg` | open, drag WAV2C64 to *Applications* |
 | Linux (x86_64) AppImage | `WAV2C64-0.6a-linux-x86_64.AppImage` | `chmod +x` and double click |
 | Linux (x86_64) normal | `WAV2C64-0.6a-linux-x86_64.tar.gz` | unpack, run `./WAV2C64` |
 

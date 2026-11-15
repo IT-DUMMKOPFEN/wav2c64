@@ -4,7 +4,8 @@
 
 Output in ./release:
   Windows : WAV2C64-<ver>-windows-x64.exe          (single file)
-  macOS   : WAV2C64-<ver>-macos-arm64.dmg          (WAV2C64.app)
+  macOS   : WAV2C64-<ver>-macos-apple-silicon.dmg  (WAV2C64.app, arm64)
+            WAV2C64-<ver>-macos-intel.dmg          (WAV2C64.app, x86_64)
   Linux   : WAV2C64-<ver>-linux-x86_64.AppImage    (single file)
             WAV2C64-<ver>-linux-x86_64.tar.gz      (single binary)
 """
@@ -99,7 +100,7 @@ def build_macos():
                      ("CFBundleDisplayName", APP_NAME)):
         subprocess.run(["plutil", "-replace", key, "-string", val, plist], check=True)
     subprocess.run(["codesign", "--force", "--deep", "--sign", "-", app], check=True)
-    arch = "arm64" if platform.machine() == "arm64" else platform.machine()
+    arch = "apple-silicon" if platform.machine() == "arm64" else "intel"
     stage = os.path.join(work, "dmg")
     shutil.rmtree(stage, ignore_errors=True)
     os.makedirs(stage)
