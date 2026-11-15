@@ -63,6 +63,7 @@ def test_main_window_flow(app, monkeypatch):
 
         # fade in / fade out, independent, with their own length
         win.wave.set_selection(0, 22050)          # 1 s
+        preset = win.w_preset.currentData()
         assert not win.w_fin_len.isEnabled()
         win.w_fin.setChecked(True)
         win.w_fin_len.setValue(5)                 # 0.5 s
@@ -78,7 +79,7 @@ def test_main_window_flow(app, monkeypatch):
         _wait(app, lambda: win.result is not None and win.result_key == win._key())
         n = win.result.nibbles[:win.result.samples]
         assert n[0] == 8 and n[-1] == 8
-        assert win.w_preset.currentData() == "quality"   # fades are not a sound preset
+        assert win.w_preset.currentData() == preset      # fades do not change the preset
         win.w_fin.setChecked(False)
         win.w_fout.setChecked(False)
         assert win.wave.fades == (0, 0)
