@@ -62,6 +62,7 @@ def test_main_window_flow(app, monkeypatch):
         assert win.w_preset.currentData() == "custom"
 
         # fade in / fade out, independent, with their own length
+        win.wave.set_selection(0, 22050)          # 1 s
         assert not win.w_fin_len.isEnabled()
         win.w_fin.setChecked(True)
         win.w_fin_len.setValue(5)                 # 0.5 s
