@@ -4,6 +4,8 @@ name: Test and build
 # workflow artifacts (release files do not count against the artifact quota):
 #   pull request / manual run  -> release "preview-0.2b" (replaced every run)
 #   tag v*                     -> release with the tag name
+#   manual run with "release"  -> release v<VERSION> (tag created by the workflow,
+#                                 notes from RELEASE_NOTES.md, files from docs/)
 
 on:
   push:
@@ -11,6 +13,11 @@ on:
     tags: ["v*"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      release:
+        description: "Publish release v<VERSION> (instead of a preview build)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -72,10 +79,20 @@ jobs:
     outputs:
       tag: ${{ steps.t.outputs.tag }}
     steps:
+      - uses: actions/checkout@v4
       - id: t
         name: Create the release
         run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+          if [[ "${{ inputs.release }}" == "true" ]]; then
+            VER=$(python3 -c "import re;print(re.search(r'VERSION = \"(.+?)\"', open('wav2c64/__init__.py').read()).group(1))")
+            TAG="v$VER"
+            gh release delete "$TAG" -R "$GITHUB_REPOSITORY" --cleanup-tag -y >/dev/null 2>&1 || true
+            gh release create "$TAG" -R "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "WAV2C64 $VER" --notes-file RELEASE_NOTES.md --latest
+            if ls docs/*.doc >/dev/null 2>&1; then
+              gh release upload "$TAG" docs/*.doc --clobber -R "$GITHUB_REPOSITORY"
+            fi
+          elif [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             TAG="$GITHUB_REF_NAME"
             gh release view "$TAG" -R "$GITHUB_REPOSITORY" >/dev/null 2>&1 || \
               gh release create "$TAG" -R "$GITHUB_REPOSITORY" --prerelease \
