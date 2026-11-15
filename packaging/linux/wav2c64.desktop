@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=WAV2C64
+GenericName=WAV to C64 sample converter
+Comment=Convert WAV files into 4-bit samples and a ready-to-run PRG for the Commodore 64
+Exec=WAV2C64 %f
+Icon=wav2c64
+Terminal=false
+Categories=AudioVideo;Audio;Development;
+MimeType=audio/x-wav;audio/wav;
